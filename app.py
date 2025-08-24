@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 
@@ -8,7 +9,33 @@ from flask import Flask, jsonify, request
 # Load environment variables
 load_dotenv()
 
+# 로깅 설정
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+
+# Flask 로깅 설정
+if not app.debug:
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    if not os.path.exists("logs"):
+        os.mkdir("logs")
+    file_handler = RotatingFileHandler("logs/app.log", maxBytes=10240, backupCount=10)
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
+        )
+    )
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info("Application startup")
 
 
 def get_db_connection():
@@ -18,20 +45,20 @@ def get_db_connection():
         connection_string = os.getenv("CUSTOMCONNSTR_AZURE_POSTGRESQL_CONNECTIONSTRING")
 
         if not connection_string:
-            print(
+            logger.error(
                 "CUSTOMCONNSTR_AZURE_POSTGRESQL_CONNECTIONSTRING environment variable is not set"
             )
             return None
 
-        print(
+        logger.info(
             f"Attempting to connect with connection string: {connection_string[:50]}..."
         )
         connection = psycopg2.connect(connection_string)
-        print("Database connection successful")
+        logger.info("Database connection successful")
         return connection
     except Exception as e:
-        print(f"Database connection error: {e}")
-        print(f"Error type: {type(e).__name__}")
+        logger.error(f"Database connection error: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
         return None
 
 
