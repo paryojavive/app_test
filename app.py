@@ -16,10 +16,20 @@ def get_db_connection():
     try:
         # Azure PostgreSQL 연결 문자열 사용
         connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
+
+        if not connection_string:
+            print("AZURE_POSTGRESQL_CONNECTIONSTRING environment variable is not set")
+            return None
+
+        print(
+            f"Attempting to connect with connection string: {connection_string[:50]}..."
+        )
         connection = psycopg2.connect(connection_string)
+        print("Database connection successful")
         return connection
     except Exception as e:
         print(f"Database connection error: {e}")
+        print(f"Error type: {type(e).__name__}")
         return None
 
 
@@ -145,6 +155,25 @@ def db_status():
                 "timestamp": datetime.now().isoformat(),
             }
         )
+
+
+@app.route("/api/debug/env")
+def debug_env():
+    """환경변수 디버깅 정보를 반환합니다."""
+    connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
+    return jsonify(
+        {
+            "has_connection_string": bool(connection_string),
+            "connection_string_length": len(connection_string)
+            if connection_string
+            else 0,
+            "connection_string_preview": connection_string[:50] + "..."
+            if connection_string and len(connection_string) > 50
+            else connection_string,
+            "environment": os.getenv("ENVIRONMENT", "unknown"),
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
 
 
 if __name__ == "__main__":
