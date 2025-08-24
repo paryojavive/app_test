@@ -1,9 +1,9 @@
-from flask import Flask, jsonify, request
 import os
 from datetime import datetime
+
 import psycopg2
-from psycopg2 import OperationalError
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
 
 # Load environment variables
 load_dotenv()

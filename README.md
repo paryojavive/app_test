@@ -21,6 +21,20 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## 개발 환경 설정
+
+```bash
+# 개발 의존성 설치
+pip install -r requirements-dev.txt
+
+# pre-commit 설치
+pre-commit install
+
+# 코드 포맷팅 및 린팅
+ruff check --fix
+ruff format
+```
+
 ## Azure App Service 배포
 
 ### 1. Azure CLI를 사용한 배포
