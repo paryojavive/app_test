@@ -15,10 +15,12 @@ def get_db_connection():
     """데이터베이스 연결을 생성하고 반환합니다."""
     try:
         # Azure PostgreSQL 연결 문자열 사용
-        connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
+        connection_string = os.getenv("CUSTOMCONNSTR_AZURE_POSTGRESQL_CONNECTIONSTRING")
 
         if not connection_string:
-            print("AZURE_POSTGRESQL_CONNECTIONSTRING environment variable is not set")
+            print(
+                "CUSTOMCONNSTR_AZURE_POSTGRESQL_CONNECTIONSTRING environment variable is not set"
+            )
             return None
 
         print(
@@ -155,40 +157,6 @@ def db_status():
                 "timestamp": datetime.now().isoformat(),
             }
         )
-
-
-@app.route("/api/debug/env")
-def debug_env():
-    """환경변수 디버깅 정보를 반환합니다."""
-    # 모든 환경변수 가져오기
-    all_env_vars = dict(os.environ)
-
-    # 민감한 정보 마스킹
-    masked_env_vars = {}
-    for key, value in all_env_vars.items():
-        if any(
-            sensitive in key.lower()
-            for sensitive in ["password", "secret", "key", "token"]
-        ):
-            masked_env_vars[key] = "*" * len(value) if value else ""
-        else:
-            masked_env_vars[key] = value
-
-    connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
-    return jsonify(
-        {
-            "has_connection_string": bool(connection_string),
-            "connection_string_length": len(connection_string)
-            if connection_string
-            else 0,
-            "connection_string_preview": connection_string[:50] + "..."
-            if connection_string and len(connection_string) > 50
-            else connection_string,
-            "environment": os.getenv("ENVIRONMENT", "unknown"),
-            "all_environment_variables": masked_env_vars,
-            "timestamp": datetime.now().isoformat(),
-        }
-    )
 
 
 if __name__ == "__main__":
