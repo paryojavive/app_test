@@ -1,8 +1,26 @@
 from flask import Flask, jsonify, request
 import os
 from datetime import datetime
+import psycopg2
+from psycopg2 import OperationalError
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
+
+
+def get_db_connection():
+    """데이터베이스 연결을 생성하고 반환합니다."""
+    try:
+        # Azure PostgreSQL 연결 문자열 사용
+        connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
+        connection = psycopg2.connect(connection_string)
+        return connection
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return None
 
 
 @app.route("/")
@@ -43,6 +61,90 @@ def info():
             "timestamp": datetime.now().isoformat(),
         }
     )
+
+
+@app.route("/api/db/test")
+def test_db_connection():
+    """데이터베이스 연결을 테스트합니다."""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "Failed to connect to database",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ), 500
+
+        # 연결 테스트
+        cursor = connection.cursor()
+        cursor.execute("SELECT version();")
+        version = cursor.fetchone()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Database connection successful",
+                "database_version": version[0] if version else "Unknown",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+    except Exception as e:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"Database test failed: {str(e)}",
+                "timestamp": datetime.now().isoformat(),
+            }
+        ), 500
+
+
+@app.route("/api/db/status")
+def db_status():
+    """데이터베이스 상태 정보를 반환합니다."""
+    try:
+        connection = get_db_connection()
+        if connection is None:
+            return jsonify(
+                {
+                    "database_connected": False,
+                    "error": "Connection failed",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+        cursor = connection.cursor()
+
+        # 데이터베이스 정보 수집
+        cursor.execute("SELECT current_database(), current_user, version();")
+        db_info = cursor.fetchone()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify(
+            {
+                "database_connected": True,
+                "database_name": db_info[0],
+                "current_user": db_info[1],
+                "database_version": db_info[2],
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+    except Exception as e:
+        return jsonify(
+            {
+                "database_connected": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
 
 if __name__ == "__main__":
