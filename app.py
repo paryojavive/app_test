@@ -160,6 +160,20 @@ def db_status():
 @app.route("/api/debug/env")
 def debug_env():
     """환경변수 디버깅 정보를 반환합니다."""
+    # 모든 환경변수 가져오기
+    all_env_vars = dict(os.environ)
+
+    # 민감한 정보 마스킹
+    masked_env_vars = {}
+    for key, value in all_env_vars.items():
+        if any(
+            sensitive in key.lower()
+            for sensitive in ["password", "secret", "key", "token"]
+        ):
+            masked_env_vars[key] = "*" * len(value) if value else ""
+        else:
+            masked_env_vars[key] = value
+
     connection_string = os.getenv("AZURE_POSTGRESQL_CONNECTIONSTRING")
     return jsonify(
         {
@@ -171,6 +185,7 @@ def debug_env():
             if connection_string and len(connection_string) > 50
             else connection_string,
             "environment": os.getenv("ENVIRONMENT", "unknown"),
+            "all_environment_variables": masked_env_vars,
             "timestamp": datetime.now().isoformat(),
         }
     )
